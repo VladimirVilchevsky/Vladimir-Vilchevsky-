@@ -1,0 +1,199 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+ 
+class Program
+{
+    static Dictionary<string, string> users = new Dictionary<string, string>();
+    static Dictionary<string, string> usersRoles = new Dictionary<string, string>();
+    static Dictionary<int, string> books = new Dictionary<int, string>();
+    static Dictionary<string, List<int>> userFavorites = new Dictionary<string, List<int>>();
+    static string currentUserEmail = null;
+    static int bookIdCounter = 1;
+ 
+    static void Main()
+    {
+        while (true)
+        {
+            if (currentUserEmail == null)
+            {
+                Console.WriteLine("1. Регистрация");
+                Console.WriteLine("2. Логин");
+                Console.WriteLine("0. Выход");
+                Console.Write("Выберите действие: ");
+                string input = Console.ReadLine();
+ 
+                if (input == "1") Register();
+                else if (input == "2") Login();
+                else if (input == "0") break;
+                else Console.WriteLine("Неверный ввод. Попробуйте снова.");
+            }
+            else
+            {
+                string role = usersRoles[currentUserEmail];
+                Console.WriteLine("3. Список книг");
+                Console.WriteLine("4. Добавить книгу");
+                Console.WriteLine("5. Удалить книгу");
+                Console.WriteLine("6. Добавить книгу в избранное");
+                Console.WriteLine("7. Удалить книгу из избранного");
+                Console.WriteLine("8. Выход");
+ 
+                if (role == "admin")
+                {
+                    Console.WriteLine("9. Выгрузить книги в CSV");
+                    Console.WriteLine("10. Изменить роль пользователя");
+                }
+ 
+                Console.Write("Выберите действие: ");
+                string input = Console.ReadLine();
+ 
+                if (input == "3") ShowBooks();
+                else if (input == "4" && role == "admin") AddBook();
+                else if (input == "5" && role == "admin") DeleteBook();
+                else if (input == "6") AddToFavorites();
+                else if (input == "7") RemoveFromFavorites();
+                else if (input == "8") { currentUserEmail = null; Console.WriteLine("Выход из системы."); }
+                else if (input == "9" && role == "admin") ExportBooksToCSV();
+                else if (input == "10" && role == "admin") ChangeUserRole();
+                else Console.WriteLine("Неверный ввод. Попробуйте снова.");
+            }
+        }
+    }
+ 
+    static void Register()
+    {
+        Console.Write("Введите email: ");
+        string email = Console.ReadLine();
+        Console.Write("Введите пароль: ");
+        string password = Console.ReadLine();
+ 
+        if (!users.ContainsKey(email))
+        {
+            users.Add(email, password);
+            usersRoles[email] = "client";
+            userFavorites[email] = new List<int>();
+            Console.WriteLine($"Пользователь {email} зарегистрирован!");
+        }
+        else
+        {
+            Console.WriteLine("Пользователь с таким email уже существует.");
+        }
+    }
+ 
+    static void Login()
+    {
+        Console.Write("Введите email: ");
+        string email = Console.ReadLine();
+        Console.Write("Введите пароль: ");
+        string password = Console.ReadLine();
+ 
+        if (users.ContainsKey(email) && users[email] == password)
+        {
+            currentUserEmail = email;
+            Console.WriteLine($"Привет, {email}! Вы вошли в систему.");
+        }
+        else
+        {
+            Console.WriteLine("Неверный email или пароль.");
+        }
+    }
+ 
+    static void ShowBooks()
+    {
+        Console.WriteLine("Список доступных книг:");
+        foreach (var book in books)
+        {
+            Console.WriteLine($"{book.Key}. {book.Value}");
+        }
+    }
+ 
+    static void AddBook()
+    {
+        Console.Write("Введите название книги: ");
+        string bookName = Console.ReadLine();
+        books.Add(bookIdCounter++, bookName);
+        Console.WriteLine($"Книга '{bookName}' добавлена.");
+    }
+ 
+    static void DeleteBook()
+    {
+        Console.Write("Введите id книги для удаления: ");
+        int bookId;
+        if (int.TryParse(Console.ReadLine(), out bookId) && books.ContainsKey(bookId))
+        {
+            books.Remove(bookId);
+            Console.WriteLine("Книга удалена.");
+        }
+        else
+        {
+            Console.WriteLine("Книга с таким id не найдена.");
+        }
+    }
+ 
+    static void AddToFavorites()
+    {
+        Console.Write("Введите id книги для добавления в избранное: ");
+        int bookId;
+        if (int.TryParse(Console.ReadLine(), out bookId) && books.ContainsKey(bookId))
+        {
+            userFavorites[currentUserEmail].Add(bookId);
+            Console.WriteLine("Книга добавлена в избранное.");
+        }
+        else
+        {
+            Console.WriteLine("Книга с таким id не найдена.");
+        }
+    }
+ 
+    static void RemoveFromFavorites()
+    {
+        Console.Write("Введите id книги для удаления из избранного: ");
+        int bookId;
+        if (int.TryParse(Console.ReadLine(), out bookId) && userFavorites[currentUserEmail].Contains(bookId))
+        {
+            userFavorites[currentUserEmail].Remove(bookId);
+            Console.WriteLine("Книга удалена из избранного.");
+        }
+        else
+        {
+            Console.WriteLine("Книга с таким id не найдена в вашем списке избранного.");
+        }
+    }
+ 
+    static void ExportBooksToCSV()
+    {
+        using (StreamWriter writer = new StreamWriter("books.csv"))
+        {
+            foreach (var book in books)
+            {
+                writer.WriteLine($"{book.Key}, {book.Value}");
+            }
+        }
+        Console.WriteLine("Список книг выгружен в файл books.csv.");
+    }
+ 
+    static void ChangeUserRole()
+    {
+        Console.Write("Введите email пользователя для изменения роли: ");
+        string email = Console.ReadLine();
+        if (usersRoles.ContainsKey(email))
+        {
+            Console.WriteLine("Введите новую роль (client/admin): ");
+            string role = Console.ReadLine();
+            if (role == "client" || role == "admin")
+            {
+                usersRoles[email] = role;
+                Console.WriteLine($"Роль пользователя {email} изменена на {role}.");
+            }
+            else
+            {
+                Console.WriteLine("Неверная роль.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Пользователь с таким email не найден.");
+        }
+    }
+}
+
